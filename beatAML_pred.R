@@ -7,9 +7,9 @@ library(caret)
 library(pls)
 library(xgboost)
 
-input_dir = "" #"/input/"
-output_dir = "" #"/output/"
-rds_dir = "" #"/rds/"
+input_dir = "/input/"
+output_dir = "/output/"
+rds_dir = "/rds/"
 
 out_file=paste0(output_dir,"predictions.csv")
 dnaseq_t <- read_csv(paste0(input_dir,"dnaseq.csv"))
@@ -51,14 +51,9 @@ for (drug_t in names(model.fits)){
   topGenes_rnaseq_t <- rnaseqGenes[[drug_t]]
   sigDE_preProc_t <- rna.preProc[[drug_t]]
   
-  # PCA of differentially expressed genes
   sigDE_log2counts_t <- rna_log2counts_t[
     which(rownames(rna_log2counts_t) %in% topGenes_rnaseq_t),]
-  #pcDat_t <- prcomp(t(sigDE_log2counts_t))
-  #PCA_sigDE_t <- predict(sigDE_preProc_t, t(sigDE_log2counts_t))
-  #Ncomp_randm <- selectNcomp(sigDE_preProc_t, method = "randomization", plot = TRUE)
-  #Ncomp_sigma <- selectNcomp(sigDE_preProc_t, method = "onesigma", plot = TRUE)
-  #Ncomp<-max(1,Ncomp_randm,Ncomp_sigma)
+  
   if (any(rownames(varImp(my_model)$importance) %in% "V1")) { 
     Ncomp <- 1} else { Ncomp <-10}
   print(Ncomp)
@@ -83,12 +78,6 @@ for (drug_t in names(model.fits)){
       select(clinical_categorical_t,c("lab_id","NPM1","FLT3.ITD")),
       by = "lab_id") %>%
     select(one_of(c("lab_id",topGenes_dnaseq_t))) %>%
-    #mutate_if(is.integer, as.factor) %>%
-    #inner_join(
-    #  as.data.frame(t(sigDE_log2counts_t)) %>%
-    #    mutate(lab_id=rownames(t(sigDE_log2counts_t))), by = "lab_id") %>%
-      #as.data.frame(pcDat_t[["x"]]) %>% select(1:min(5,dim(pcDat_t[["x"]])[2])) %>%
-      #  mutate(lab_id=rownames(pcDat_t[["x"]])), by = "lab_id") %>%
     inner_join(
       select(clinical_categorical_t,-c("NPM1","FLT3.ITD")) %>%
         mutate_at(vars(-one_of("lab_id")),as.numeric), by = "lab_id") %>%
@@ -96,12 +85,10 @@ for (drug_t in names(model.fits)){
   
   full_data_t <- full_data_t %>%
     inner_join( as.data.frame(PLS_sigDE_t) %>% 
-                  #select(1:min(10,dim(PCA_sigDE_t)[2])) %>%
                   mutate(lab_id=rownames(PLS_sigDE_t)), by = "lab_id") 
   
   full_data_t[setdiff(topGenes_dnaseq_t,names(full_data_t))] <- 0
   full_data_t[setdiff(rownames(varImp(my_model)$importance),names(full_data_t))] <- 0
-  #full_data_t[setdiff(my_model$feature_names,names(full_data_t))] <- 0
   
   full_data_t <- full_data_t %>% 
     mutate_at(vars(-one_of("lab_id")),funs(as.numeric(as.character(.))))
