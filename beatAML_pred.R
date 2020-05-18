@@ -31,6 +31,11 @@ rownames(rna_counts_t) <- rownames(rna_log2counts_t)
 # rnaseq cpm sum of total check
 print(colSums(2^rna_log2counts_t))
 
+# variance stabilizing transformation
+#vstcounts_t <- vst(rna_counts_t, blind = FALSE)
+#rownames(vstcounts_t) <- rownames(rna_log2counts_t)
+#rna_log2counts_t <- vstcounts_t
+
 # load lists of model fits and gene features
 model.fits <- readRDS(file = paste0(rds_dir,"model-fits.rds"))
 dnaseqGenes <- readRDS(file = paste0(rds_dir,"dnaseqGenes.rds"))
@@ -51,7 +56,18 @@ for (drug_t in names(model.fits)){
     which(rownames(rna_log2counts_t) %in% topGenes_rnaseq_t),]
   #pcDat_t <- prcomp(t(sigDE_log2counts_t))
   #PCA_sigDE_t <- predict(sigDE_preProc_t, t(sigDE_log2counts_t))
-  PLS_sigDE_t <- predict(sigDE_preProc_t, type = "scores", newdata = t(sigDE_log2counts_t))
+  #Ncomp_randm <- selectNcomp(sigDE_preProc_t, method = "randomization", plot = TRUE)
+  #Ncomp_sigma <- selectNcomp(sigDE_preProc_t, method = "onesigma", plot = TRUE)
+  #Ncomp<-max(1,Ncomp_randm,Ncomp_sigma)
+  if (any(rownames(varImp(my_model)$importance) %in% "V1")) { 
+    Ncomp <- 1} else { Ncomp <-10}
+  print(Ncomp)
+  PLS_sigDE_t <- c()
+  print(drug_t)
+  if (Ncomp!=0){
+  PLS_sigDE_t <- predict(sigDE_preProc_t, comps = 1:Ncomp, 
+                         type = "scores", newdata = t(sigDE_log2counts_t))
+  }
   
   full_data_t <- dcast(
     dnaseq_t, lab_id ~ Hugo_Symbol, fun.aggregate =

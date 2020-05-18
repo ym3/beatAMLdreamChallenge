@@ -26,16 +26,24 @@ RUN Rscript -e "install.packages('randomForest')"
 RUN Rscript -e "install.packages('import')"
 RUN Rscript -e "install.packages('foreach')"
 RUN Rscript -e "install.packages('xgboost')"
+RUN Rscript -e "install.packages('pls')"
+#RUN Rscript -e 'install.packages("BiocManager"); BiocManager::install("DESeq2")'
+RUN Rscript -e "install.packages('survival')"
+RUN Rscript -e 'install.packages("BiocManager"); BiocManager::install("limma")'
+RUN Rscript -e 'install.packages("BiocManager"); BiocManager::install("WGCNA")'
 
 ## Copy your files into Docker image
 USER root
 RUN mkdir /rds
-COPY model-fits.rds /rds/
-COPY dnaseqGenes.rds /rds/
-COPY rnaseqGenes.rds /rds/
-COPY rna-preProc.rds /rds/
+#COPY model-fits.rds /rds/
+#COPY dnaseqGenes.rds /rds/
+#COPY rnaseqGenes.rds /rds/
+#COPY rna-preProc.rds /rds/
+COPY coxph-fit.rds /rds/
 COPY beatAML_pred.R /usr/local/bin/
+COPY predict_response.R /usr/local/bin/
 RUN chmod a+x /usr/local/bin/beatAML_pred.R
+RUN chmod a+x /usr/local/bin/predict_response.R
 
 ## Make Docker container executable
-ENTRYPOINT Rscript --vanilla /usr/local/bin/beatAML_pred.R
+ENTRYPOINT Rscript --vanilla /usr/local/bin/predict_response.R
